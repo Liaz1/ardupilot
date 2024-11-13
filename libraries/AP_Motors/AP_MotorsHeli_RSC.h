@@ -4,6 +4,7 @@
 #include <AP_Math/AP_Math.h>            // ArduPilot Mega Vector/Matrix math Library
 #include <RC_Channel/RC_Channel.h>
 #include <SRV_Channel/SRV_Channel.h>
+#include <AP_Logger/AP_Logger.h>
 
 // default main rotor speed (ch8 out) as a number from 0 ~ 100
 #define AP_MOTORS_HELI_RSC_SETPOINT             70
@@ -29,6 +30,15 @@
 
 // RSC governor defaults
 #define AP_MOTORS_HELI_RSC_GOVERNOR_RANGE_DEFAULT     100
+
+// IDLE governor defaults
+#define AP_MOTORS_HELI_RSC_IDLE_KP_DEFAULT          0.0025
+#define AP_MOTORS_HELI_RSC_IDLE_KI_DEFAULT          0.005
+#define AP_MOTORS_HELI_RSC_IDLE_IMAX_DEFAULT        1
+#define AP_MOTORS_HELI_RSC_IDLE_MAX_DEFAULT         17
+#define AP_MOTORS_HELI_RSC_IDLE_RANGE_DEFAULT       300
+#define AP_MOTORS_HELI_RSC_IDLE_RPM_DEFAULT         850
+#define AP_MOTORS_HELI_RSC_IDLE_START_DEFAULT       10
 
 // rotor control modes
 enum RotorControlMode {
@@ -144,7 +154,6 @@ public:
     AP_Int16        _arot_idle_output;           // Percent value used when in autorotation
     AP_Int8         _rsc_arot_engage_time;    // time in seconds for in-flight power re-engagement
     AP_Int8         _rsc_arot_man_enable;     // enables manual autorotation
-
 private:
     uint64_t        _last_update_us;
 
@@ -179,6 +188,14 @@ private:
     float           _idle_throttle;               // current idle throttle setting
     bool            _gov_bailing_out;             // flag that holds the status of governor bail out
 
+    float           _idle_gov_integrator;
+    float           _idle_gov_output_P;
+
+    float           _idle_gov_output;
+
+    uint32_t        _last_log_ms;
+    uint32_t        _last_gcs_ms;
+
     // update_rotor_ramp - slews rotor output scalar between 0 and 1, outputs float scalar to _rotor_ramp_output
     void            update_rotor_ramp(float rotor_ramp_input, float dt);
 
@@ -191,6 +208,10 @@ private:
     // calculate_throttlecurve - uses throttle curve and collective input to determine throttle setting
     float           calculate_throttlecurve(float collective_in);
 
+    // calculated idle governor output controller
+    void           update_idle_governor_output(float dt);
+
+
     // parameters
     AP_Int16        _power_slewrate;            // throttle slew rate (percentage per second)
     AP_Int16        _thrcrv[5];                 // throttle value sent to throttle servo at 0, 25, 50, 75 and 100 percent collective
@@ -202,10 +223,22 @@ private:
     AP_Float        _governor_range;            // RPM range +/- governor rpm reference setting where governor is operational
     AP_Int16        _cooldown_time;             // cooldown time to provide a fast idle
 
+    // params added for idle governor
+    AP_Float        _rsc_idle_gain_p;         // idle governor P gain
+    AP_Float        _rsc_idle_gain_i;         // idle governor I gain
+    AP_Float        _rsc_idle_imax;           // idle governor I term limiter
+    AP_Int8         _rsc_idle_max;             // max throttle percentage allowed during idle
+    AP_Int16        _rsc_idle_range;           // idle governor rpm range
+    AP_Int16        _rsc_idle_governor_rpm;    // desired idle RPM
+    AP_Int8         _rsc_idle_throttle_start;  // throttle percentage used to start the engine before the idle governor takes over
+
     // parameter accessors to allow conversions
     float       get_critical_speed() const { return _critical_speed * 0.01; }
     float       get_idle_output() const { return _idle_output * 0.01; }
     float       get_governor_torque() const { return _governor_torque * 0.01; }
     float       get_governor_compensator() const { return _governor_compensator * 0.000001; }
     float       get_arot_idle_output() const { return _arot_idle_output * 0.01; }
+
+    float       get_starting_throttle_output() const { return _rsc_idle_throttle_start * 0.01; }
+    float       get_max_idle_throttle_output() const { return _rsc_idle_max * 0.01; }
 };

@@ -218,6 +218,62 @@ const AP_Param::GroupInfo AP_MotorsHeli_RSC::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("AROT_IDLE", 27, AP_MotorsHeli_RSC, _arot_idle_output, AP_MOTORS_HELI_RSC_AROT_IDLE),
 
+    // @Param: IDL_KP
+    // @DisplayName: Idle governor controller P gain.
+    // @Description: Idle governor P gain.
+    // @Range: 0 100
+    // @Increment: 0.1
+    // @User: Standard
+    AP_GROUPINFO("IDL_KP", 28, AP_MotorsHeli_RSC, _rsc_idle_gain_p, 0.6),
+
+    // @Param: IDL_KI
+    // @DisplayName: Idle governor controller I gain.
+    // @Description: Idle governor I gain.
+    // @Range: 0 100
+    // @Increment: 0.1
+    // @User: Standard
+    AP_GROUPINFO("IDL_KI", 29, AP_MotorsHeli_RSC, _rsc_idle_gain_i, 0.7),
+
+    // @Param: IDL_IMAX
+    // @DisplayName: Idle governor I gain max.
+    // @Description: Idle governor I gain max.
+    // @Range: 0 100
+    // @Increment: 0.1
+    // @User: Standard
+    AP_GROUPINFO("IDL_IMAX", 30, AP_MotorsHeli_RSC, _rsc_idle_imax, 1),
+
+    // @Param: IDL_MAX
+    // @DisplayName: Max throttle percentage that can be used in IDLE
+    // @Description: Max throttle percentage that can be used in IDLE
+    // @Range: 0 100
+    // @Increment: 0.1
+    // @User: Standard
+    AP_GROUPINFO("IDL_MAX", 31, AP_MotorsHeli_RSC, _rsc_idle_max, 30),
+
+    // @Param: IDL_RNG
+    // @DisplayName: Idle governor RPM range
+    // @Description: Idle governor RPM range
+    // @Range: 0 300
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("IDL_RNG", 32, AP_MotorsHeli_RSC, _rsc_idle_range, 300),
+
+    // @Param: IDL_RPM
+    // @DisplayName: Idle governor RPM setpoint. The desired IDLE RPM.
+    // @Description: Idle governor RPM setpoint. The desired IDLE RPM.
+    // @Range: 0 800
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("IDL_RPM", 33, AP_MotorsHeli_RSC, _rsc_idle_governor_rpm, 850),
+    
+    // @Param: IDL_STRT
+    // @DisplayName: Throttle percentage for engine start
+    // @Description: Throttle percentage to be used to start the engine before the IDLE governor engages and takes over.
+    // @Range: 0 100
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("IDL_STRT", 34, AP_MotorsHeli_RSC, _rsc_idle_throttle_start, 250),
+
     AP_GROUPEND
 };
 
@@ -304,6 +360,8 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
         governor_reset();
         _autothrottle = false;
         _governor_fault = false;
+
+
         if (_in_autorotation) {
             // if in autorotation, set the output to idle for autorotation. This will tell an external governor to use fast ramp for spool up.
             // if autorotation idle is set to zero then default to the RSC idle value.
@@ -337,7 +395,15 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
                         _fast_idle_timer = 0.0f;
                     }
                 } else {
-                    _idle_throttle = get_idle_output();
+                    update_idle_governor_output(dt);
+
+                    if (_rotor_rpm < (_rsc_idle_governor_rpm - _rsc_idle_range)) {
+                        _idle_throttle = get_starting_throttle_output();
+                    } else if (_rotor_rpm > (_rsc_idle_governor_rpm + _rsc_idle_range)) {
+                        _idle_throttle = get_idle_output();
+                    } else {
+                        _idle_throttle = _idle_gov_output;
+                    }
                 }
             }
             // this resets the bailout feature if the aircraft has landed.
@@ -384,6 +450,51 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
 
     // output to rsc servo
     write_rsc(_control_output);
+}
+
+void AP_MotorsHeli_RSC::update_idle_governor_output(float dt)
+{
+    int16_t governor_rpm = _rsc_idle_governor_rpm.get();//400;
+    float max_idle_throttle_output = get_max_idle_throttle_output();//1;
+
+    float err = 1 - (_rotor_rpm / (float)governor_rpm);
+
+    _idle_gov_integrator += _rsc_idle_gain_i * err * dt;
+    _idle_gov_integrator = constrain_float(_idle_gov_integrator, -_rsc_idle_imax, _rsc_idle_imax);
+    _idle_gov_output_P = _rsc_idle_gain_p * err;
+
+    _idle_gov_output = constrain_float(_idle_gov_output_P + _idle_gov_integrator, 0, max_idle_throttle_output);
+
+    uint32_t nowex = AP_HAL::millis();
+
+    if ((nowex - _last_gcs_ms) > 200) {
+        _last_gcs_ms = nowex;
+
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Governor desired RPM %d", governor_rpm);
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Governor error %f", err);
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Governor Integrator and P %f - %f", _idle_gov_integrator, _idle_gov_output_P);
+    }
+
+#ifdef HAL_LOGGING_ENABLED
+    uint32_t now = AP_HAL::millis();
+
+    if ((now - _last_log_ms) > 50) {
+        _last_log_ms = now;
+
+        AP::logger().Write("IDLE", "TimeUS,Targ,Act,Max,Err,P,I,Out,kP,kI,Dt", "QHfffffffff",
+                            AP_HAL::micros64(),
+                            governor_rpm,
+                            _rotor_rpm,
+                            max_idle_throttle_output,
+                            err,
+                            _idle_gov_output_P,
+                            _idle_gov_integrator,
+                            _idle_gov_output,
+                            _rsc_idle_gain_p,
+                            _rsc_idle_gain_i,
+                            dt);
+    }
+#endif
 }
 
 // update_rotor_ramp - slews rotor output scalar between 0 and 1, outputs float scalar to _rotor_ramp_output
@@ -604,7 +715,7 @@ void AP_MotorsHeli_RSC::autothrottle_run()
         _governor_torque_reference = _control_output;  // increment torque setting to be passed to main power loop
     } else {
         // failsafe - if governor has faulted use throttle curve
-        _control_output = _idle_throttle + (_rotor_ramp_output * (throttlecurve - _idle_throttle));
+        _control_output = get_idle_output() + (_rotor_ramp_output * (throttlecurve - get_idle_output()));
     }
 }
 
