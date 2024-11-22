@@ -272,8 +272,63 @@ const AP_Param::GroupInfo AP_MotorsHeli_RSC::var_info[] = {
     // @Range: 0 100
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("IDL_STRT", 34, AP_MotorsHeli_RSC, _rsc_idle_throttle_start, 250),
-
+    AP_GROUPINFO("IDL_STRT", 34, AP_MotorsHeli_RSC, _rsc_idle_throttle_start, 25),
+    // @Param: THRCRV_5
+    // @DisplayName: Throttle Curve at 100% Coll
+    // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
+    // @Range: 0 100
+    // @Units: %
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("THRCRV_5", 35, AP_MotorsHeli_RSC, _thrcrv[5], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+    // @Param: THRCRV_6
+    // @DisplayName: Throttle Curve at 100% Coll
+    // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
+    // @Range: 0 100
+    // @Units: %
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("THRCRV_6", 36, AP_MotorsHeli_RSC, _thrcrv[6], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+    // @Param: THRCRV_7
+    // @DisplayName: Throttle Curve at 100% Coll
+    // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
+    // @Range: 0 100
+    // @Units: %
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("THRCRV_7", 37, AP_MotorsHeli_RSC, _thrcrv[7], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+    // @Param: THRCRV_8
+    // @DisplayName: Throttle Curve at 100% Coll
+    // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
+    // @Range: 0 100
+    // @Units: %
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("THRCRV_8", 38, AP_MotorsHeli_RSC, _thrcrv[8], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+    // @Param: THRCRV_9
+    // @DisplayName: Throttle Curve at 100% Coll
+    // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
+    // @Range: 0 100
+    // @Units: %
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("THRCRV_9", 39, AP_MotorsHeli_RSC, _thrcrv[9], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+    // @Param: THRCRV_10
+    // @DisplayName: Throttle Curve at 100% Coll
+    // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
+    // @Range: 0 100
+    // @Units: %
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("THRCRV_10", 40, AP_MotorsHeli_RSC, _thrcrv[10], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+    // @Param: THRCRV_11
+    // @DisplayName: Throttle Curve at 100% Coll
+    // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
+    // @Range: 0 100
+    // @Units: %
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("THRCRV_11", 41, AP_MotorsHeli_RSC, _thrcrv[11], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
     AP_GROUPEND
 };
 
@@ -289,10 +344,10 @@ void AP_MotorsHeli_RSC::init_servo()
 // TODO: Look at possibly calling this at a slower rate.  Doesn't need to be called every cycle.
 void AP_MotorsHeli_RSC::set_throttle_curve()
 {
-    float thrcrv[5];
+    float thrcrv[11];
     // Ensure user inputs are within parameter limits
     // Scale throttle curve parameters
-    for (uint8_t i = 0; i < 5; i++) {
+    for (uint8_t i = 0; i < 11; i++) {
         thrcrv[i] = constrain_float(_thrcrv[i] * 0.01f, 0.0f, 1.0f);
     }
     // Calculate the spline polynomials for the throttle curve
@@ -340,16 +395,25 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
 
         // governor is forced to disengage status and reset outputs
         governor_reset();
+        idle_governor_reset();
         _autothrottle = false;
         _governor_fault = false;
-        //turbine start flag on
+        // turbine start flag on
         _starting = true;
         _autorotating = false;
         _bailing_out = false;
         _gov_bailing_out = false;
 
         // ensure _idle_throttle not set to invalid value
-        _idle_throttle = get_idle_output();
+        if (_idle_gov_output_last > 0)
+        {
+            _idle_throttle = _idle_gov_output_last;
+        }
+        else
+        {
+            _idle_throttle = get_idle_output();
+        }
+
         break;
 
     case RotorControlState::IDLE:
@@ -360,6 +424,8 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
         governor_reset();
         _autothrottle = false;
         _governor_fault = false;
+
+        update_idle_governor_output(dt, _rotor_rpm);
 
 
         if (_in_autorotation) {
@@ -395,14 +461,18 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
                         _fast_idle_timer = 0.0f;
                     }
                 } else {
-                    update_idle_governor_output(dt);
-
-                    if (_rotor_rpm < (_rsc_idle_governor_rpm - _rsc_idle_range)) {
+                    if (_rotor_rpm < (float)(_rsc_idle_governor_rpm.get() - _rsc_idle_range.get()))
+                    {
                         _idle_throttle = get_starting_throttle_output();
-                    } else if (_rotor_rpm > (_rsc_idle_governor_rpm + _rsc_idle_range)) {
+                    }
+                    else if (_rotor_rpm > (float)(_rsc_idle_governor_rpm.get() + _rsc_idle_range.get()))
+                    {
                         _idle_throttle = get_idle_output();
-                    } else {
+                    }
+                    else
+                    {
                         _idle_throttle = _idle_gov_output;
+                        _idle_gov_output_last = _idle_throttle;
                     }
                 }
             }
@@ -420,8 +490,9 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
 
         // ensure _idle_throttle not set to invalid value due to premature switch out of turbine start
         if (_starting) {
-            _idle_throttle = get_idle_output();
+            _idle_throttle = _idle_gov_output_last;
         }
+
         // if turbine engine started without using start sequence, set starting flag just to be sure it can't be triggered when back in idle
         _starting = false;
         _autorotating = false;
@@ -452,50 +523,24 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
     write_rsc(_control_output);
 }
 
-void AP_MotorsHeli_RSC::update_idle_governor_output(float dt)
+void AP_MotorsHeli_RSC::update_idle_governor_output(float dt, float rotor_rpm)
 {
-    int16_t governor_rpm = _rsc_idle_governor_rpm.get();//400;
-    float max_idle_throttle_output = get_max_idle_throttle_output();//1;
-
-    float err = 1 - (_rotor_rpm / (float)governor_rpm);
-
-    _idle_gov_integrator += _rsc_idle_gain_i * err * dt;
-    _idle_gov_integrator = constrain_float(_idle_gov_integrator, -_rsc_idle_imax, _rsc_idle_imax);
-    _idle_gov_output_P = _rsc_idle_gain_p * err;
-
-    _idle_gov_output = constrain_float(_idle_gov_output_P + _idle_gov_integrator, 0, max_idle_throttle_output);
-
-    uint32_t nowex = AP_HAL::millis();
-
-    if ((nowex - _last_gcs_ms) > 200) {
-        _last_gcs_ms = nowex;
-
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Governor desired RPM %d", governor_rpm);
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Governor error %f", err);
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Governor Integrator and P %f - %f", _idle_gov_integrator, _idle_gov_output_P);
+    static bool idle_point_initialized = false;
+    if (!idle_point_initialized)
+    {
+        _idle_gov_integrator = get_idle_output();
+        idle_point_initialized = true;
     }
 
-#ifdef HAL_LOGGING_ENABLED
-    uint32_t now = AP_HAL::millis();
+    _idle_gov_error = 1 -  (rotor_rpm / (float)_rsc_idle_governor_rpm);
+    _idle_gov_integrator += _rsc_idle_gain_i.get() * _idle_gov_error * dt;
+    _idle_gov_output_P = _rsc_idle_gain_p.get() * _idle_gov_error;
 
-    if ((now - _last_log_ms) > 50) {
-        _last_log_ms = now;
+    _idle_gov_integrator = constrain_float(_idle_gov_integrator, -_rsc_idle_imax.get(), _rsc_idle_imax.get());
 
-        AP::logger().Write("IDLE", "TimeUS,Targ,Act,Max,Err,P,I,Out,kP,kI,Dt", "QHfffffffff",
-                            AP_HAL::micros64(),
-                            governor_rpm,
-                            _rotor_rpm,
-                            max_idle_throttle_output,
-                            err,
-                            _idle_gov_output_P,
-                            _idle_gov_integrator,
-                            _idle_gov_output,
-                            _rsc_idle_gain_p,
-                            _rsc_idle_gain_i,
-                            dt);
-    }
-#endif
+    _idle_gov_output = constrain_float(_idle_gov_output_P + _idle_gov_integrator, 0, get_max_idle_throttle_output());
 }
+
 
 // update_rotor_ramp - slews rotor output scalar between 0 and 1, outputs float scalar to _rotor_ramp_output
 void AP_MotorsHeli_RSC::update_rotor_ramp(float rotor_ramp_input, float dt)
@@ -630,11 +675,14 @@ uint32_t AP_MotorsHeli_RSC::get_output_mask() const
 // calculate_throttlecurve - uses throttle curve and collective input to determine throttle setting
 float AP_MotorsHeli_RSC::calculate_throttlecurve(float collective_in)
 {
-    const float inpt = collective_in * 4.0f + 1.0f;
-    uint8_t idx = constrain_int16(int8_t(collective_in * 4), 0, 3);
+    const float inpt = collective_in * 10.0f + 1.0f;
+    uint8_t idx = constrain_int16(int8_t(collective_in * 10), 0, 9);
     const float a = inpt - (idx + 1.0f);
     const float b = (idx + 1.0f) - inpt + 1.0f;
-    float throttle = _thrcrv_poly[idx][0] * a + _thrcrv_poly[idx][1] * b + _thrcrv_poly[idx][2] * (powf(a,3.0f) - a) / 6.0f + _thrcrv_poly[idx][3] * (powf(b,3.0f) - b) / 6.0f;
+    float throttle = _thrcrv_poly[idx][0] * a +
+                     _thrcrv_poly[idx][1] * b +
+                     _thrcrv_poly[idx][2] * (powf(a,3.0f) - a) / 6.0f +
+                     _thrcrv_poly[idx][3] * (powf(b,3.0f) - b) / 6.0f;
 
     throttle = constrain_float(throttle, 0.0f, 1.0f);
     return throttle;
@@ -664,7 +712,7 @@ void AP_MotorsHeli_RSC::autothrottle_run()
             _governor_torque_reference -= get_governor_compensator();
         }
         // throttle output uses droop + torque compensation to maintain proper rotor speed
-        _control_output = constrain_float((_governor_torque_reference + _governor_output), (get_idle_output() * 1.5f), 1.0f);
+        _control_output = constrain_float((_governor_torque_reference + _governor_output), (get_idle_output() * 1.2f), 1.0f);
         // governor and speed sensor fault detection - must maintain RPM within governor range
         // speed fault detector will allow a fault to persist for 200 contiguous governor updates
         // this is failsafe for bad speed sensor or severely mis-adjusted governor
@@ -726,4 +774,10 @@ void AP_MotorsHeli_RSC::governor_reset()
     _governor_torque_reference = 0.0f;
     _governor_engage = false;
     _governor_fault_count = 0;   // reset fault count when governor reset
+}
+
+void AP_MotorsHeli_RSC::idle_governor_reset()
+{
+    _idle_gov_output = 0.0f;
+    _idle_gov_integrator = 0.0f;
 }

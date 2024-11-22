@@ -581,6 +581,7 @@ void Copter::ten_hz_logging_loop()
     }
 #if FRAME_CONFIG == HELI_FRAME
     Log_Write_Heli();
+    Log_Write_Heli_Idle();
 #endif
 #if AP_WINCH_ENABLED
     if (should_log(MASK_LOG_ANY)) {

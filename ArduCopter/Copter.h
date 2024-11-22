@@ -861,6 +861,7 @@ private:
     void Log_Video_Stabilisation();
 #if FRAME_CONFIG == HELI_FRAME
     void Log_Write_Heli(void);
+    void Log_Write_Heli_Idle(void);
 #endif
     void Log_Write_Guided_Position_Target(ModeGuided::SubMode submode, const Vector3f& pos_target, bool terrain_alt, const Vector3f& vel_target, const Vector3f& accel_target);
     void Log_Write_Guided_Attitude_Target(ModeGuided::SubMode target_type, float roll, float pitch, float yaw, const Vector3f &ang_vel, float thrust, float climb_rate);

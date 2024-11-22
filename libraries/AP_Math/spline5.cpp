@@ -24,11 +24,11 @@
 #include <stdint.h>
 #include "spline5.h"
 
-void splinterp5(const float x[5], float out[4][4])
+void splinterp5(const float x[11], float out[10][4])
 {
 
     // number of spline points
-    const uint8_t n = 5;
+    const uint8_t n = 11;
 
     // working variables
     float u[n] {};

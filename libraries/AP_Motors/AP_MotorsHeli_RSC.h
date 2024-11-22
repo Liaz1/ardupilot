@@ -98,6 +98,8 @@ public:
     void        set_governor_output(float governor_output) {_governor_output = governor_output; }
     float       get_governor_output() const { return _governor_output; }
     void        governor_reset();
+    void        idle_governor_reset();
+
     float       get_control_output() const { return _control_output; }
     void        set_idle_output(float idle_output) { _idle_output.set(idle_output); }
     void        autothrottle_run();
@@ -141,6 +143,11 @@ public:
     // rotor_speed_above_critical - return true if rotor speed is above that critical for flight
     bool        rotor_speed_above_critical(void) const { return get_rotor_speed() > get_critical_speed(); }
 
+    float       get_idle_P() const { return _idle_gov_output_P; }
+    float       get_idle_I() const { return _idle_gov_integrator; }
+    float       get_idle_Error() const { return _idle_gov_error; }
+    float       get_idle_gov_output() const { return _idle_gov_output; }
+
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -154,6 +161,15 @@ public:
     AP_Int16        _arot_idle_output;           // Percent value used when in autorotation
     AP_Int8         _rsc_arot_engage_time;    // time in seconds for in-flight power re-engagement
     AP_Int8         _rsc_arot_man_enable;     // enables manual autorotation
+
+        // params added for idle governor
+    AP_Float        _rsc_idle_gain_p;         // idle governor P gain
+    AP_Float        _rsc_idle_gain_i;         // idle governor I gain
+    AP_Float        _rsc_idle_imax;           // idle governor I term limiter
+    AP_Int8         _rsc_idle_max;             // max throttle percentage allowed during idle
+    AP_Int16        _rsc_idle_range;           // idle governor rpm range
+    AP_Int16        _rsc_idle_governor_rpm;    // desired idle RPM
+    AP_Int8         _rsc_idle_throttle_start;  // throttle percentage used to start the engine before the idle governor takes over
 private:
     uint64_t        _last_update_us;
 
@@ -168,7 +184,7 @@ private:
     float           _rotor_ramp_output;           // scalar used to ramp rotor speed between _rsc_idle_output and full speed (0.0-1.0f)
     float           _rotor_runup_output;          // scalar used to store status of rotor run-up time (0.0-1.0f)
     bool            _runup_complete;              // flag for determining if runup is complete
-    float           _thrcrv_poly[4][4];           // spline polynomials for throttle curve interpolation
+    float           _thrcrv_poly[10][4];           // spline polynomials for throttle curve interpolation
     float           _collective_in;               // collective in for throttle curve calculation, range 0-1.0f
     float           _rotor_rpm;                   // rotor rpm from speed sensor for governor
     bool            _turbine_start;               // initiates starting sequence
@@ -188,13 +204,14 @@ private:
     float           _idle_throttle;               // current idle throttle setting
     bool            _gov_bailing_out;             // flag that holds the status of governor bail out
 
+    float           _idle_gov_error;
     float           _idle_gov_integrator;
     float           _idle_gov_output_P;
-
     float           _idle_gov_output;
 
-    uint32_t        _last_log_ms;
-    uint32_t        _last_gcs_ms;
+    //used to save the last value
+    float           _idle_gov_output_last;
+
 
     // update_rotor_ramp - slews rotor output scalar between 0 and 1, outputs float scalar to _rotor_ramp_output
     void            update_rotor_ramp(float rotor_ramp_input, float dt);
@@ -209,12 +226,12 @@ private:
     float           calculate_throttlecurve(float collective_in);
 
     // calculated idle governor output controller
-    void           update_idle_governor_output(float dt);
+    void           update_idle_governor_output(float dt, float rotor_rpm);
 
 
     // parameters
     AP_Int16        _power_slewrate;            // throttle slew rate (percentage per second)
-    AP_Int16        _thrcrv[5];                 // throttle value sent to throttle servo at 0, 25, 50, 75 and 100 percent collective
+    AP_Int16        _thrcrv[11];                // throttle value sent to throttle servo at 0, 25, 50, 75 and 100 percent collective
     AP_Int16        _governor_rpm;              // governor reference for speed calculations
     AP_Float        _governor_torque;           // governor torque rise setting
     AP_Float        _governor_compensator;      // governor torque compensator variable
@@ -222,15 +239,6 @@ private:
     AP_Float        _governor_ff;               // governor feedforward variable
     AP_Float        _governor_range;            // RPM range +/- governor rpm reference setting where governor is operational
     AP_Int16        _cooldown_time;             // cooldown time to provide a fast idle
-
-    // params added for idle governor
-    AP_Float        _rsc_idle_gain_p;         // idle governor P gain
-    AP_Float        _rsc_idle_gain_i;         // idle governor I gain
-    AP_Float        _rsc_idle_imax;           // idle governor I term limiter
-    AP_Int8         _rsc_idle_max;             // max throttle percentage allowed during idle
-    AP_Int16        _rsc_idle_range;           // idle governor rpm range
-    AP_Int16        _rsc_idle_governor_rpm;    // desired idle RPM
-    AP_Int8         _rsc_idle_throttle_start;  // throttle percentage used to start the engine before the idle governor takes over
 
     // parameter accessors to allow conversions
     float       get_critical_speed() const { return _critical_speed * 0.01; }
