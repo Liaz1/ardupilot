@@ -4,6 +4,7 @@
 #include <AP_Math/AP_Math.h>            // ArduPilot Mega Vector/Matrix math Library
 #include <RC_Channel/RC_Channel.h>
 #include <SRV_Channel/SRV_Channel.h>
+#include <AP_Logger/AP_Logger.h>
 
 // default main rotor speed (ch8 out) as a number from 0 ~ 100
 #define AP_MOTORS_HELI_RSC_SETPOINT             70
@@ -144,9 +145,11 @@ public:
     AP_Int16        _arot_idle_output;           // Percent value used when in autorotation
     AP_Int8         _rsc_arot_engage_time;    // time in seconds for in-flight power re-engagement
     AP_Int8         _rsc_arot_man_enable;     // enables manual autorotation
-
+    AP_Int16        _rsc_test_param;          // test parameter
 private:
     uint64_t        _last_update_us;
+
+    uint32_t        _last_log_ms;
 
     // channel setup for aux function
     SRV_Channel::Aux_servo_function_t _aux_fn;

@@ -218,6 +218,13 @@ const AP_Param::GroupInfo AP_MotorsHeli_RSC::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("AROT_IDLE", 27, AP_MotorsHeli_RSC, _arot_idle_output, AP_MOTORS_HELI_RSC_AROT_IDLE),
 
+    // @Param: TEST_VAL
+    // @DisplayName: Test value
+    // @Description: This is a test param.
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("TEST_VAL", 28, AP_MotorsHeli_RSC, _rsc_test_param, 800),
+
     AP_GROUPEND
 };
 
@@ -337,6 +344,19 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
                         _fast_idle_timer = 0.0f;
                     }
                 } else {
+
+ #ifdef HAL_LOGGING_ENABLED
+                    uint32_t log_now = AP_HAL::millis();
+                    if ((log_now - _last_log_ms) > 50) {
+                        _last_log_ms = log_now;
+
+                        AP::logger().Write("IDLE", "TimeUS,Targ,Act,Dt", "Qhff",
+                                            AP_HAL::micros64(),
+                                            _rsc_test_param,
+                                            _rotor_rpm,
+                                            dt);
+                    }
+#endif
                     _idle_throttle = get_idle_output();
                 }
             }
