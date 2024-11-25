@@ -328,6 +328,7 @@ void Copter::Log_Write_Heli()
 struct PACKED log_idle_gov {
     LOG_PACKET_HEADER;
     uint64_t time_us;
+    int16_t desired;
     float error;
     float out_p;
     float out_i;
@@ -339,10 +340,11 @@ void Copter::Log_Write_Heli_Idle()
     struct log_idle_gov pkt = {
         LOG_PACKET_HEADER_INIT(LOG_IDLE_GOV_MSG),
         time_us  : AP_HAL::micros64(),
+        desired : motors->get_idle_desired_rpm(),
         error : motors->get_idle_error(),
         out_p : motors->get_idle_output_P(),
         out_i : motors->get_idle_output_I(),
-        out : motors->get_idle_gov_output(),
+        out : motors->get_idle_gov_output()
     };
     logger.WriteBlock(&pkt, sizeof(pkt));
 }
@@ -514,8 +516,9 @@ const struct LogStructure Copter::log_structure[] = {
 #if FRAME_CONFIG == HELI_FRAME
     { LOG_HELI_MSG, sizeof(log_Heli),
       "HELI",  "Qffff",        "TimeUS,DRRPM,ERRPM,Gov,Throt", "s----", "F----" , true },
-          { LOG_IDLE_GOV_MSG, sizeof(log_idle_gov),
-      "IDLE",  "Qffff",        "TimeUS,Error,OutP,OutI,Out", "s----", "F----" , true },
+    
+    { LOG_IDLE_GOV_MSG, sizeof(log_idle_gov),
+      "IDLE",  "Qhffff",        "TimeUS,Desired,Error,OutP,OutI,Out", "s-----", "F-----" , true },
 #endif
 
 // @LoggerMessage: SIDD

@@ -147,6 +147,7 @@ public:
     float       get_idle_I() const { return _idle_gov_integrator; }
     float       get_idle_Error() const { return _idle_gov_error; }
     float       get_idle_gov_output() const { return _idle_gov_output; }
+    int16_t      get_idle_desired_rpm() const { return _rsc_idle_governor_rpm; }
 
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo var_info[];

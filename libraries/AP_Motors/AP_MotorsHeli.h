@@ -110,6 +110,7 @@ public:
     float get_idle_output_I() const { return _main_rotor.get_idle_I(); }
     float get_idle_error() const { return _main_rotor.get_idle_Error(); }
     float get_idle_gov_output() const { return _main_rotor.get_idle_gov_output(); }
+    int16_t  get_idle_desired_rpm() const { return _main_rotor.get_idle_desired_rpm(); }
 
     // get_motor_mask - returns a bitmask of which outputs are being used for motors or servos (1 means being used)
     //  this can be used to ensure other pwm outputs (i.e. for servos) do not conflict
