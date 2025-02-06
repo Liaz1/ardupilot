@@ -273,6 +273,7 @@ const AP_Param::GroupInfo AP_MotorsHeli_RSC::var_info[] = {
     // @Increment: 1
     // @User: Standard
     AP_GROUPINFO("IDL_STRT", 34, AP_MotorsHeli_RSC, _rsc_idle_throttle_start, 25),
+
     // @Param: THRCRV_5
     // @DisplayName: Throttle Curve at 100% Coll
     // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
@@ -281,6 +282,7 @@ const AP_Param::GroupInfo AP_MotorsHeli_RSC::var_info[] = {
     // @Increment: 1
     // @User: Standard
     AP_GROUPINFO("THRCRV_5", 35, AP_MotorsHeli_RSC, _thrcrv[5], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+    
     // @Param: THRCRV_6
     // @DisplayName: Throttle Curve at 100% Coll
     // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
@@ -289,6 +291,7 @@ const AP_Param::GroupInfo AP_MotorsHeli_RSC::var_info[] = {
     // @Increment: 1
     // @User: Standard
     AP_GROUPINFO("THRCRV_6", 36, AP_MotorsHeli_RSC, _thrcrv[6], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+
     // @Param: THRCRV_7
     // @DisplayName: Throttle Curve at 100% Coll
     // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
@@ -297,6 +300,7 @@ const AP_Param::GroupInfo AP_MotorsHeli_RSC::var_info[] = {
     // @Increment: 1
     // @User: Standard
     AP_GROUPINFO("THRCRV_7", 37, AP_MotorsHeli_RSC, _thrcrv[7], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+
     // @Param: THRCRV_8
     // @DisplayName: Throttle Curve at 100% Coll
     // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
@@ -305,6 +309,7 @@ const AP_Param::GroupInfo AP_MotorsHeli_RSC::var_info[] = {
     // @Increment: 1
     // @User: Standard
     AP_GROUPINFO("THRCRV_8", 38, AP_MotorsHeli_RSC, _thrcrv[8], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+
     // @Param: THRCRV_9
     // @DisplayName: Throttle Curve at 100% Coll
     // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
@@ -313,6 +318,7 @@ const AP_Param::GroupInfo AP_MotorsHeli_RSC::var_info[] = {
     // @Increment: 1
     // @User: Standard
     AP_GROUPINFO("THRCRV_9", 39, AP_MotorsHeli_RSC, _thrcrv[9], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+
     // @Param: THRCRV_10
     // @DisplayName: Throttle Curve at 100% Coll
     // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
@@ -321,14 +327,7 @@ const AP_Param::GroupInfo AP_MotorsHeli_RSC::var_info[] = {
     // @Increment: 1
     // @User: Standard
     AP_GROUPINFO("THRCRV_10", 40, AP_MotorsHeli_RSC, _thrcrv[10], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
-    // @Param: THRCRV_11
-    // @DisplayName: Throttle Curve at 100% Coll
-    // @Description: Sets the throttle output (HeliRSC servo) in percent for the throttle curve at the minimum collective pitch position. The 100 percent collective is defined by H_COL_MAX.  Example: if the setup has -2 degree to +10 degree collective pitch setup, this setting would correspond to +10 degree of pitch.
-    // @Range: 0 100
-    // @Units: %
-    // @Increment: 1
-    // @User: Standard
-    AP_GROUPINFO("THRCRV_11", 41, AP_MotorsHeli_RSC, _thrcrv[11], AP_MOTORS_HELI_RSC_THRCRV_100_DEFAULT),
+
     AP_GROUPEND
 };
 
@@ -398,6 +397,7 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
         idle_governor_reset();
         _autothrottle = false;
         _governor_fault = false;
+        _idle_governor_fault = false;
         // turbine start flag on
         _starting = true;
         _autorotating = false;
@@ -405,14 +405,7 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
         _gov_bailing_out = false;
 
         // ensure _idle_throttle not set to invalid value
-        if (_idle_gov_output_last > 0)
-        {
-            _idle_throttle = _idle_gov_output_last;
-        }
-        else
-        {
-            _idle_throttle = get_idle_output();
-        }
+        _idle_throttle = get_idle_output();
 
         break;
 
@@ -424,8 +417,6 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
         governor_reset();
         _autothrottle = false;
         _governor_fault = false;
-
-        update_idle_governor_output(dt, _rotor_rpm);
 
 
         if (_in_autorotation) {
@@ -461,19 +452,7 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
                         _fast_idle_timer = 0.0f;
                     }
                 } else {
-                    if (_rotor_rpm < (float)(_rsc_idle_governor_rpm.get() - _rsc_idle_range.get()))
-                    {
-                        _idle_throttle = get_starting_throttle_output();
-                    }
-                    else if (_rotor_rpm > (float)(_rsc_idle_governor_rpm.get() + _rsc_idle_range.get()))
-                    {
-                        _idle_throttle = get_idle_output();
-                    }
-                    else
-                    {
-                        _idle_throttle = _idle_gov_output;
-                        _idle_gov_output_last = _idle_throttle;
-                    }
+                    idle_governor_run(dt, _rotor_rpm);
                 }
             }
             // this resets the bailout feature if the aircraft has landed.
@@ -523,22 +502,66 @@ void AP_MotorsHeli_RSC::output(RotorControlState state)
     write_rsc(_control_output);
 }
 
-void AP_MotorsHeli_RSC::update_idle_governor_output(float dt, float rotor_rpm)
+void AP_MotorsHeli_RSC::idle_governor_run(float dt, float rotor_rpm)
 {
-    static bool idle_point_initialized = false;
-    if (!idle_point_initialized)
+    if (_idle_governor_engage && !_idle_governor_fault)
     {
-        _idle_gov_integrator = get_idle_output();
-        idle_point_initialized = true;
+        _idle_gov_error = 1 -  (rotor_rpm / (float)_rsc_idle_governor_rpm);
+        _idle_gov_integrator += _rsc_idle_gain_i * _idle_gov_error * dt;
+        _idle_gov_output_P = _rsc_idle_gain_p * _idle_gov_error;
+
+        _idle_gov_integrator = constrain_float(_idle_gov_integrator, -_rsc_idle_imax, _rsc_idle_imax);
+
+        _idle_gov_output = constrain_float(_idle_gov_output_P + _idle_gov_integrator, 0, get_max_idle_throttle_output());
+
+        _idle_throttle = _idle_gov_output;
+        _idle_gov_output_last = _idle_throttle;
+
+        if ((_rotor_rpm <= (_rsc_idle_governor_rpm - _rsc_idle_range)) || (_rotor_rpm >= (_rsc_idle_governor_rpm + _rsc_idle_range)))
+        {
+            _idle_governor_fault_count++;
+            if (_idle_governor_fault_count > 200)
+            {
+                idle_governor_reset();
+                _idle_governor_fault = true;
+
+                if (_rotor_rpm >= (_rsc_idle_governor_rpm + _rsc_idle_range))
+                {
+                    GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Idle Governor Fault: Overspeed");
+                }
+                else
+                {
+                    GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Idle Governor Fault: Underspeed");
+                }
+            }
+        }
+        else 
+        {
+            _idle_governor_fault_count = 0;   // reset fault count if the fault doesn't persist
+        }
     }
-
-    _idle_gov_error = 1 -  (rotor_rpm / (float)_rsc_idle_governor_rpm);
-    _idle_gov_integrator += _rsc_idle_gain_i.get() * _idle_gov_error * dt;
-    _idle_gov_output_P = _rsc_idle_gain_p.get() * _idle_gov_error;
-
-    _idle_gov_integrator = constrain_float(_idle_gov_integrator, -_rsc_idle_imax.get(), _rsc_idle_imax.get());
-
-    _idle_gov_output = constrain_float(_idle_gov_output_P + _idle_gov_integrator, 0, get_max_idle_throttle_output());
+    else if (!_idle_governor_engage && !_idle_governor_fault)
+    {
+        if (_rotor_rpm < (float)(_rsc_idle_governor_rpm - _rsc_idle_range))
+        {
+            _idle_throttle = get_starting_throttle_output();
+        }
+        else if (_rotor_rpm > (float)(_rsc_idle_governor_rpm + _rsc_idle_range))
+        {
+            _idle_throttle = get_idle_output();
+        }
+        else
+        {
+            _idle_gov_integrator = _idle_throttle;
+            _idle_governor_engage = true;
+            GCS_SEND_TEXT(MAV_SEVERITY_NOTICE, "Idle Governor Engaged");
+        }
+    }
+    else
+    {
+        //Failsafe for idle governor getting out of control. Use default idle throttle value
+        _idle_throttle = get_idle_output();
+    }
 }
 
 
@@ -750,6 +773,10 @@ void AP_MotorsHeli_RSC::autothrottle_run()
             float torque_limit = (get_governor_torque() * get_governor_torque());
             _governor_output = (_rotor_rpm / (float)_governor_rpm) * torque_limit;
             if (_rotor_rpm >= ((float)_governor_rpm - torque_ref_error_rpm)) {
+                //Reset idle governor after RSC governor takes over
+                idle_governor_reset();
+                GCS_SEND_TEXT(MAV_SEVERITY_NOTICE, "Idle Governor Reset");
+
                 _governor_engage = true;
                 _autothrottle = true;
                 _gov_bailing_out = false;
@@ -778,6 +805,8 @@ void AP_MotorsHeli_RSC::governor_reset()
 
 void AP_MotorsHeli_RSC::idle_governor_reset()
 {
+    _idle_governor_engage = false;
     _idle_gov_output = 0.0f;
     _idle_gov_integrator = 0.0f;
+    _idle_governor_fault_count = 0;
 }

@@ -192,13 +192,16 @@ private:
     bool            _starting;                    // tracks if starting sequence has been used
     float           _governor_output;             // governor output for rotor speed control
     bool            _governor_engage;             // RSC governor status flag
+    bool            _idle_governor_engage;        // RSC idle governor status flag
     bool            _autothrottle;                // autothrottle status flag
     bool            _governor_fault;              // governor fault status flag
+    bool            _idle_governor_fault;         // idle governor fault status flag
     bool            _use_bailout_ramp;            // true if allowing RSC to quickly ramp up engine
     bool            _in_autorotation;             // true if vehicle is currently in an autorotation
     bool            _spooldown_complete;          // flag for determining if spooldown is complete
     float           _fast_idle_timer;             // cooldown timer variable
     uint8_t         _governor_fault_count;        // variable for tracking governor speed sensor faults
+    uint8_t         _idle_governor_fault_count;   // variable for tracking idle governor speed sensor faults
     float           _governor_torque_reference;   // governor reference for load calculations
     bool            _autorotating;                // flag that holds the status of autorotation
     bool            _bailing_out;                 // flag that holds the status of bail out(power engagement)
@@ -227,7 +230,7 @@ private:
     float           calculate_throttlecurve(float collective_in);
 
     // calculated idle governor output controller
-    void           update_idle_governor_output(float dt, float rotor_rpm);
+    void           idle_governor_run(float dt, float rotor_rpm);
 
 
     // parameters
@@ -240,7 +243,7 @@ private:
     AP_Float        _governor_ff;               // governor feedforward variable
     AP_Float        _governor_range;            // RPM range +/- governor rpm reference setting where governor is operational
     AP_Int16        _cooldown_time;             // cooldown time to provide a fast idle
-
+    
     // parameter accessors to allow conversions
     float       get_critical_speed() const { return _critical_speed * 0.01; }
     float       get_idle_output() const { return _idle_output * 0.01; }
